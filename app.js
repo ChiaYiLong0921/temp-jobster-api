@@ -44,6 +44,8 @@ app.use('/api/v1/jobs', authenticateUser, jobsRouter)
 
 app.get('*', (req, res) => {
   res.send('jobster')
+  console.log(req)
+
   // res.sendFile(path.resolve(__dirname, './client/build', 'index.html'))
 })
 
