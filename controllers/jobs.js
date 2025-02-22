@@ -104,7 +104,7 @@ const deleteJob = async (req, res) => {
   if (!job) {
     throw new NotFoundError(`No job with id ${jobId}`)
   }
-  res.status(StatusCodes.OK).send()
+  res.status(StatusCodes.OK).json({ msg: 'Success! Job Removed' })
 }
 
 const showStats = async (req, res) => {
@@ -149,7 +149,7 @@ const showStats = async (req, res) => {
       return { date, count }
     })
     .reverse()
-  console.log(monthlyApplications)
+  // console.log(monthlyApplications)
 
   res
     .status(StatusCodes.OK)

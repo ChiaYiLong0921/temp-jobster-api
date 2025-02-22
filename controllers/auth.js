@@ -17,7 +17,7 @@ const register = async (req, res) => {
 }
 
 const login = async (req, res) => {
-  // console.log(`Login object:${req.body}`)
+  // console.log(req.headers)
 
   const { email, password } = req.body
 
@@ -50,7 +50,7 @@ const login = async (req, res) => {
 
 const updateUser = async (req, res) => {
   const { email, name, lastName, location } = req.body
-  console.log(req.user)
+  // console.log(req.user)
 
   if (!email || !lastName || !location) {
     throw new BadRequestError('Please Provide all values')
