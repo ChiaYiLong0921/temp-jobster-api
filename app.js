@@ -28,7 +28,9 @@ app.use(express.json())
 app.use(helmet())
 app.use(xss())
 const corsOptions = {
-  origin: ['http://localhost:5173', 'http://localhost:5174'], // Allow only requests from this origin
+  origin: [
+    'https://67ba49f5d282930ba7790a98--papaya-cranachan-df9f5e.netlify.app/',
+  ], // Allow only requests from this origin
   methods: 'GET,POST,PATCH,DELETE', // Allow only these methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allow only these headers
 }
