@@ -1,2 +1,5 @@
 /node_modules
 .env
+MOCK_DATA.json
+MOCK_DATA1.json
+populate.js
