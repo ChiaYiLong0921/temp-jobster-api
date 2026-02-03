@@ -32,7 +32,7 @@ app.use(express.json())
 app.use(helmet())
 app.use(xss())
 const corsOptions = {
-  origin: ['http://localhost:5173'], // Allow only requests from this origin
+  origin: ['http://localhost:5173', process.env.FRONTEND1], // Allow only requests from this origin
   methods: 'GET,POST,PATCH,DELETE', // Allow only these methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allow only these headers
 }
