@@ -11,7 +11,11 @@ const cors = require('cors')
 const express = require('express')
 const app = express()
 
-const connectDB = require('./db/connect')
+require('./models/User');
+require('./models/Job');
+
+// const connectDB = require('./db/connect')
+const {sequelize, initializeDatabase } = require('./db/connect')
 const authenticateUser = require('./middleware/authentication')
 // routers
 const authRouter = require('./routes/auth')
@@ -54,7 +58,8 @@ const port = process.env.PORT || 8080
 
 const start = async () => {
   try {
-    await connectDB(process.env.MONGO_URI)
+    // await connectDB(process.env.MONGO_URI)
+    await initializeDatabase();
     app.listen(port, () =>
       console.log(`Server is listening on port ${port}...`)
     )

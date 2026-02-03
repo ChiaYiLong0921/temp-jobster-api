@@ -1,10 +1,11 @@
-const User = require('../models/User')
-const { StatusCodes } = require('http-status-codes')
-const { BadRequestError, UnauthenticatedError } = require('../errors')
+const User = require('../models/User'); // Sequelize model
+const { StatusCodes } = require('http-status-codes');
+const { BadRequestError, UnauthenticatedError } = require('../errors');
 
+// Register a new user
 const register = async (req, res) => {
-  const user = await User.create({ ...req.body })
-  const token = user.createJWT()
+  const user = await User.create({ ...req.body }); // Sequelize create
+  const token = user.createJWT(); // Instance method
   res.status(StatusCodes.CREATED).json({
     user: {
       email: user.email,
@@ -13,30 +14,31 @@ const register = async (req, res) => {
       name: user.name,
       token,
     },
-  })
-}
+  });
+};
 
+// Login user
 const login = async (req, res) => {
-  // console.log(req.headers)
-
-  const { email, password } = req.body
+  const { email, password } = req.body;
 
   if (!email || !password) {
-    throw new BadRequestError('Please provide email and password')
+    throw new BadRequestError('Please provide email and password');
   }
-  // console.log('checked email and password')
 
-  const user = await User.findOne({ email })
+  // Find user by email (Sequelize syntax)
+  const user = await User.findOne({ where: { email } });
   if (!user) {
-    throw new UnauthenticatedError('Invalid Credentials')
+    throw new UnauthenticatedError('Invalid Credentials');
   }
-  const isPasswordCorrect = await user.comparePassword(password)
+
+  // Compare password (instance method)
+  const isPasswordCorrect = await user.comparePassword(password);
   if (!isPasswordCorrect) {
-    throw new UnauthenticatedError('Invalid Credentials')
+    throw new UnauthenticatedError('Invalid Credentials');
   }
-  // compare password
-  const token = user.createJWT()
-  // console.log('token created')
+
+  // Generate token
+  const token = user.createJWT();
   res.status(StatusCodes.OK).json({
     user: {
       email: user.email,
@@ -45,24 +47,34 @@ const login = async (req, res) => {
       name: user.name,
       token,
     },
-  })
-}
+  });
+};
 
+// Update user profile
 const updateUser = async (req, res) => {
-  const { email, name, lastName, location } = req.body
-  // console.log(req.user)
+  const { email, name, lastName, location } = req.body;
 
-  if (!email || !lastName || !location) {
-    throw new BadRequestError('Please Provide all values')
+  if (!email || !name || !lastName || !location) {
+    throw new BadRequestError('Please provide all values');
   }
-  const user = await User.findOne({ _id: req.user.userId })
-  user.email = email
-  user.name = name
-  user.lastName = lastName
-  user.location = location
 
-  await user.save()
-  const token = user.createJWT()
+  // Find user by ID (Sequelize syntax)
+  const user = await User.findByPk(req.user.userId);
+  if (!user) {
+    throw new UnauthenticatedError('User not found');
+  }
+
+  // Update user fields
+  user.email = email;
+  user.name = name;
+  user.lastName = lastName;
+  user.location = location;
+
+  // Save updated user (Sequelize save)
+  await user.save();
+
+  // Generate new token
+  const token = user.createJWT();
   res.status(StatusCodes.OK).json({
     user: {
       email: user.email,
@@ -71,11 +83,11 @@ const updateUser = async (req, res) => {
       name: user.name,
       token,
     },
-  })
-}
+  });
+};
 
 module.exports = {
   register,
   login,
   updateUser,
-}
+};

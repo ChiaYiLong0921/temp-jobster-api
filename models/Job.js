@@ -1,39 +1,68 @@
-const mongoose = require('mongoose')
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../db/connect'); // Import sequelize
 
-const JobSchema = new mongoose.Schema(
+// Define the Job model
+const Job = sequelize.define(
+  'Job',
   {
     company: {
-      type: String,
-      required: [true, 'Please provide company name'],
-      maxlength: 50,
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      validate: {
+        len: {
+          args: [1, 50],
+          msg: 'Company name must be between 1 and 50 characters',
+        },
+      },
     },
     position: {
-      type: String,
-      required: [true, 'Please provide position'],
-      maxlength: 100,
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      validate: {
+        len: {
+          args: [1, 100],
+          msg: 'Position must be between 1 and 100 characters',
+        },
+      },
     },
     status: {
-      type: String,
-      enum: ['interview', 'declined', 'pending'],
-      default: 'pending',
+      type: DataTypes.ENUM('interview', 'declined', 'pending'),
+      defaultValue: 'pending',
     },
     createdBy: {
-      type: mongoose.Types.ObjectId,
-      ref: 'User',
-      required: [true, 'Please provide user'],
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'Users', // Reference to the Users table
+        key: 'id',
+      },
+      onDelete: 'CASCADE',
     },
     jobType: {
-      type: String,
-      enum: ['full-time', 'part-time', 'remote', 'internship'],
-      default: 'full-time',
+      type: DataTypes.ENUM('full-time', 'part-time', 'remote', 'internship'),
+      defaultValue: 'full-time',
     },
     jobLocation: {
-      type: String,
-      default: 'my city',
-      require: true,
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      defaultValue: 'my city',
+      validate: {
+        len: {
+          args: [1, 100],
+          msg: 'Job location must be between 1 and 100 characters',
+        },
+      },
     },
   },
-  { timestamps: true }
-)
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = mongoose.model('Job', JobSchema)
+// Associate Job with User
+Job.belongsTo(sequelize.models.User, {
+  foreignKey: 'createdBy',
+  as: 'user',
+});
+
+module.exports = Job;

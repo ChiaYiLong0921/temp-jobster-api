@@ -5,3 +5,5 @@ MOCK_DATA1.json
 populate.js
 
 /client
+**/*_mongo.js
+test.js

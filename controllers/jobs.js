@@ -1,160 +1,187 @@
-const Job = require('../models/Job')
-const { StatusCodes } = require('http-status-codes')
-const { BadRequestError, NotFoundError } = require('../errors')
-const mongoose = require('mongoose')
-const moment = require('moment')
+const Job = require('../models/Job'); // Sequelize model
+const { StatusCodes } = require('http-status-codes');
+const { BadRequestError, NotFoundError } = require('../errors');
+const Sequelize = require('sequelize');
+const moment = require('moment');
 
+// Get all jobs with filtering, sorting, and pagination
 const getAllJobs = async (req, res) => {
-  const { search, status, jobType, sort } = req.query
+  const { search, status, jobType, sort, page = 1, limit = 10 } = req.query;
 
   const queryObject = {
     createdBy: req.user.userId,
-  }
+  };
 
+  // Search by position (case-insensitive)
   if (search) {
-    queryObject.position = { $regex: search, $options: 'i' }
+    queryObject.position = {
+      [Sequelize.Op.iLike]: `%${search}%`,
+    };
   }
 
+  // Filter by status
   if (status && status !== 'all') {
-    queryObject.status = status
+    queryObject.status = status;
   }
 
+  // Filter by jobType
   if (jobType && jobType !== 'all') {
-    queryObject.jobType = jobType
+    queryObject.jobType = jobType;
   }
 
-  let result = Job.find(queryObject)
-
+  // Sorting options
+  let order = [];
   if (sort === 'latest') {
-    result = result.sort('-createdAt')
-  }
-  if (sort === 'oldest') {
-    result = result.sort('createdAt')
-  }
-  if (sort === 'a-z') {
-    result = result.sort('position')
-  }
-  if (sort === 'z-a') {
-    result = result.sort('-position')
+    order = [['createdAt', 'DESC']];
+  } else if (sort === 'oldest') {
+    order = [['createdAt', 'ASC']];
+  } else if (sort === 'a-z') {
+    order = [['position', 'ASC']];
+  } else if (sort === 'z-a') {
+    order = [['position', 'DESC']];
   }
 
-  const page = Number(req.query.page) || 1
-  const limit = Number(req.query.limit) || 10
-  const skip = (page - 1) * limit
-  result = result.skip(skip).limit(limit)
+  // Pagination
+  const offset = (page - 1) * limit;
 
-  const jobs = await result
-  const totalJobs = await Job.countDocuments(queryObject)
-  const numOfPages = Math.ceil(totalJobs / limit)
-  res.status(StatusCodes.OK).json({ jobs, totalJobs, numOfPages })
-}
+  // Query jobs
+  const { count: totalJobs, rows: jobs } = await Job.findAndCountAll({
+    where: queryObject,
+    order,
+    limit: parseInt(limit),
+    offset: parseInt(offset),
+  });
+
+  const numOfPages = Math.ceil(totalJobs / limit);
+
+  res.status(StatusCodes.OK).json({ jobs, totalJobs, numOfPages });
+};
+
+// Get a single job
 const getJob = async (req, res) => {
   const {
     user: { userId },
     params: { id: jobId },
-  } = req
+  } = req;
 
   const job = await Job.findOne({
-    _id: jobId,
-    createdBy: userId,
-  })
+    where: {
+      id: jobId,
+      createdBy: userId,
+    },
+  });
+
   if (!job) {
-    throw new NotFoundError(`No job with id ${jobId}`)
+    throw new NotFoundError(`No job with id ${jobId}`);
   }
-  res.status(StatusCodes.OK).json({ job })
-}
 
+  res.status(StatusCodes.OK).json({ job });
+};
+
+// Create a new job
 const createJob = async (req, res) => {
-  req.body.createdBy = req.user.userId
-  const job = await Job.create(req.body)
-  res.status(StatusCodes.CREATED).json({ job })
-}
+  req.body.createdBy = req.user.userId;
+  const job = await Job.create(req.body);
+  res.status(StatusCodes.CREATED).json({ job });
+};
 
+// Update a job
 const updateJob = async (req, res) => {
+  
   const {
     body: { company, position },
     user: { userId },
     params: { id: jobId },
-  } = req
+  } = req;
 
-  if (company === '' || position === '') {
-    throw new BadRequestError('Company or Position fields cannot be empty')
+  if (!company || !position) {
+    throw new BadRequestError('Company or Position fields cannot be empty');
   }
-  const job = await Job.findByIdAndUpdate(
-    { _id: jobId, createdBy: userId },
-    req.body,
-    { new: true, runValidators: true }
-  )
-  if (!job) {
-    throw new NotFoundError(`No job with id ${jobId}`)
-  }
-  res.status(StatusCodes.OK).json({ job })
-}
+  
+  
+  const [updatedRowsCount, updatedJobs] = await Job.update(req.body, {
+    where: {
+      id: jobId,
+      createdBy: userId,
+    },
+    returning: true, // Return updated rows (PostgreSQL-specific)
+  });
 
+  if (updatedRowsCount === 0) {
+    throw new NotFoundError(`No job with id ${jobId}`);
+  }
+
+  res.status(StatusCodes.OK).json({ job: updatedJobs[0] });
+};
+
+// Delete a job
 const deleteJob = async (req, res) => {
   const {
     user: { userId },
     params: { id: jobId },
-  } = req
+  } = req;
 
-  const job = await Job.findByIdAndRemove({
-    _id: jobId,
-    createdBy: userId,
-  })
-  if (!job) {
-    throw new NotFoundError(`No job with id ${jobId}`)
-  }
-  res.status(StatusCodes.OK).json({ msg: 'Success! Job Removed' })
-}
-
-const showStats = async (req, res) => {
-  let stats = await Job.aggregate([
-    { $match: { createdBy: mongoose.Types.ObjectId(req.user.userId) } },
-    { $group: { _id: '$status', count: { $sum: 1 } } },
-  ])
-
-  stats = stats.reduce((acc, curr) => {
-    const { _id: title, count } = curr
-    acc[title] = count
-    return acc
-  }, {})
-  const defaultStats = {
-    pending: stats.pending || 0,
-    interview: stats.interview || 0,
-    declined: stats.declined || 0,
-  }
-
-  let monthlyApplications = await Job.aggregate([
-    { $match: { createdBy: mongoose.Types.ObjectId(req.user.userId) } },
-    {
-      $group: {
-        _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
-        count: { $sum: 1 },
-      },
+  const deletedRowsCount = await Job.destroy({
+    where: {
+      id: jobId,
+      createdBy: userId,
     },
-    { $sort: { '_id.year': -1, '_id.month': -1 } },
-    { $limit: 6 },
-  ])
+  });
 
-  monthlyApplications = monthlyApplications
-    .map((item) => {
-      const {
-        _id: { year, month },
-        count,
-      } = item
-      const date = moment()
-        .month(month - 1)
-        .year(year)
-        .format('MMM Y')
-      return { date, count }
-    })
-    .reverse()
-  // console.log(monthlyApplications)
+  if (deletedRowsCount === 0) {
+    throw new NotFoundError(`No job with id ${jobId}`);
+  }
 
-  res
-    .status(StatusCodes.OK)
-    .json({ defaultStats, monthlyApplications: monthlyApplications })
-}
+  res.status(StatusCodes.OK).json({ msg: 'Success! Job Removed' });
+};
+
+// Show job statistics
+const showStats = async (req, res) => {
+  const userId = req.user.userId;
+
+  // Aggregate stats by status
+  const stats = await Job.findAll({
+    attributes: [
+      'status',
+      [Sequelize.fn('COUNT', Sequelize.col('status')), 'count'],
+    ],
+    where: { createdBy: userId },
+    group: ['status'],
+  });
+
+  const defaultStats = {
+    pending: 0,
+    interview: 0,
+    declined: 0,
+  };
+
+  stats.forEach((stat) => {
+    defaultStats[stat.status] = parseInt(stat.get('count'));
+  });
+
+  // Monthly applications
+  const monthlyApplications = await Job.findAll({
+    attributes: [
+      [Sequelize.fn('DATE_TRUNC', 'month', Sequelize.col('createdAt')), 'date'],
+      [Sequelize.fn('COUNT', Sequelize.col('id')), 'count'],
+    ],
+    where: { createdBy: userId },
+    group: [Sequelize.fn('DATE_TRUNC', 'month', Sequelize.col('createdAt'))],
+    order: [[Sequelize.fn('DATE_TRUNC', 'month', Sequelize.col('createdAt')), 'DESC']],
+    limit: 6,
+  });
+
+  const formattedMonthlyApplications = monthlyApplications.map((item) => {
+    const date = moment(item.get('date')).format('MMM YYYY');
+    const count = parseInt(item.get('count'));
+    return { date, count };
+  }).reverse();
+
+  res.status(StatusCodes.OK).json({
+    defaultStats,
+    monthlyApplications: formattedMonthlyApplications,
+  });
+};
 
 module.exports = {
   createJob,
@@ -163,4 +190,4 @@ module.exports = {
   updateJob,
   getJob,
   showStats,
-}
+};

@@ -1,63 +1,95 @@
-const mongoose = require('mongoose')
-const bcrypt = require('bcryptjs')
-const jwt = require('jsonwebtoken')
+const { DataTypes } = require('sequelize');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { sequelize } = require('../db/connect'); // Import sequelize
 
-const UserSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Please provide name'],
-    maxlength: 50,
-    minlength: 3,
+// Define the User model
+const User = sequelize.define(
+  'User',
+  {
+    name: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      validate: {
+        len: {
+          args: [3, 50],
+          msg: 'Name must be between 3 and 50 characters',
+        },
+      },
+    },
+    email: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      unique: true,
+      validate: {
+        isEmail: {
+          msg: 'Please provide a valid email',
+        },
+      },
+    },
+    password: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      validate: {
+        len: {
+          args: [6, 255],
+          msg: 'Password must be at least 6 characters',
+        },
+      },
+    },
+    lastName: {
+      type: DataTypes.STRING(20),
+      defaultValue: 'lastName',
+      validate: {
+        len: {
+          args: [0, 20],
+          msg: 'Last name must be at most 20 characters',
+        },
+      },
+    },
+    location: {
+      type: DataTypes.STRING(20),
+      defaultValue: 'my city',
+      validate: {
+        len: {
+          args: [0, 20],
+          msg: 'Location must be at most 20 characters',
+        },
+      },
+    },
   },
-  email: {
-    type: String,
-    required: [true, 'Please provide email'],
-    match: [
-      /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
-      'Please provide a valid email',
-    ],
-    unique: true,
-  },
-  password: {
-    type: String,
-    required: [true, 'Please provide password'],
-    minlength: 6,
-  },
-  lastName: {
-    type: String,
-    trim: true,
-    maxlength: 20,
-    default: 'lastName',
-  },
-  location: {
-    type: String,
-    trim: true,
-    maxlength: 20,
-    default: 'my city',
-  },
-})
+  {
+    timestamps: true,
+    hooks: {
+      beforeCreate: async (user) => {
+        if (user.password) {
+          const salt = await bcrypt.genSalt(10);
+          user.password = await bcrypt.hash(user.password, salt);
+        }
+      },
+      beforeUpdate: async (user) => {
+        if (user.changed('password')) {
+          const salt = await bcrypt.genSalt(10);
+          user.password = await bcrypt.hash(user.password, salt);
+        }
+      },
+    },
+  }
+);
 
-UserSchema.pre('save', async function () {
-  if (!this.isModified('password')) return
-  console.log(this.modifiedPaths())
-
-  const salt = await bcrypt.genSalt(10)
-  this.password = await bcrypt.hash(this.password, salt)
-})
-
-UserSchema.methods.createJWT = function () {
+// Instance methods
+User.prototype.createJWT = function () {
   return jwt.sign(
-    { userId: this._id, name: this.name },
+    { userId: this.id, name: this.name },
     process.env.JWT_SECRET,
     {
       expiresIn: process.env.JWT_LIFETIME,
     }
-  )
-}
+  );
+};
 
-UserSchema.methods.comparePassword = async function (canditatePassword) {
-  const isMatch = await bcrypt.compare(canditatePassword, this.password)
-  return isMatch
-}
+User.prototype.comparePassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
 
-module.exports = mongoose.model('User', UserSchema)
+module.exports = User;
