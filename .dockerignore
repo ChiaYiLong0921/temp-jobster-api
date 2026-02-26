@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+.env
+.git
+
+MOCK_DATA.json
+MOCK_DATA1.json
+populate.js
+test.js
+
+/client
+*_mongo.js

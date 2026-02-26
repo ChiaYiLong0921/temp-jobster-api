@@ -171,12 +171,19 @@ const showStats = async (req, res) => {
     limit: 6,
   });
 
+
   const formattedMonthlyApplications = monthlyApplications.map((item) => {
     const date = moment(item.get('date')).format('MMM YYYY');
     const count = parseInt(item.get('count'));
     return { date, count };
   }).reverse();
-
+  const return_string = {
+    defaultStats,
+    monthlyApplications: formattedMonthlyApplications,
+  }
+  
+  
+  
   res.status(StatusCodes.OK).json({
     defaultStats,
     monthlyApplications: formattedMonthlyApplications,

@@ -32,13 +32,37 @@ app.use(express.json())
 app.use(helmet())
 app.use(xss())
 const corsOptions = {
-  origin: ['http://localhost:5173', process.env.FRONTEND1], // Allow only requests from this origin
+  origin: [process.env.FRONTEND1], // Allow only requests from this origin
   methods: 'GET,POST,PATCH,DELETE', // Allow only these methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allow only these headers
 }
 
 // Use CORS middleware with specified options
 app.use(cors(corsOptions))
+// app.use((req, res, next) => {
+//   const requestOrigin = req.get('Origin');
+//   const hostHeader = req.get('Host');
+  
+//   console.log(`CORS Check - Request Origin: ${requestOrigin}, Host: ${hostHeader}`);
+  
+//   // Check if origin is allowed
+//   const allowedOrigins = ['http://localhost:5173', process.env.FRONTEND1];
+//   const isAllowed = allowedOrigins.includes(requestOrigin);
+  
+//   console.log(`Origin ${requestOrigin} is ${isAllowed ? 'ALLOWED' : 'BLOCKED'} by CORS`);
+  
+//   // Set CORS headers manually or continue with standard CORS
+//   res.header('Access-Control-Allow-Origin', '*'); // Temporary permissive setting for testing
+//   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+//   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+//   if (req.method === 'OPTIONS') {
+//     res.sendStatus(200);
+//     return;
+//   }
+  
+//   next();
+// });
 
 // routes
 app.use('/api/v1/auth', authRouter)
@@ -46,9 +70,9 @@ app.use('/api/v1/jobs', authenticateUser, jobsRouter)
 
 app.get('*', (req, res) => {
   res.send('jobster')
-  console.log(req.headers)
+  // console.log(req.headers)
 
-  // res.sendFile(path.resolve(__dirname, './client/build', 'index.html'))
+  // res.sendFile(path.resolve(__dirname, './client/dist', 'index.html'))
 })
 
 app.use(notFoundMiddleware)

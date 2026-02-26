@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sequelize } = require('../db/connect'); // Import sequelize
 
-// Define the User model
+
 const User = sequelize.define(
   'User',
   {
