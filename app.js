@@ -75,6 +75,16 @@ app.get('*', (req, res) => {
   // res.sendFile(path.resolve(__dirname, './client/dist', 'index.html'))
 })
 
+app.get('/api/v1/health', async (req, res) => {
+  try {
+    // Optional: Check if the database is actually reachable
+    await sequelize.authenticate(); 
+    res.status(200).send('OK');
+  } catch (error) {
+    res.status(500).send('Database connection failed');
+  }
+});
+
 app.use(notFoundMiddleware)
 app.use(errorHandlerMiddleware)
 

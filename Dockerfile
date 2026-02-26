@@ -1,9 +1,7 @@
 FROM node:20-alpine
 
-
-
 COPY package*.json ./
-RUN RUN npm ci --omit=dev && \
+RUN npm ci --omit=dev && \
     apk add --no-cache --update ca-certificates && \
     apk upgrade --no-cache
 
