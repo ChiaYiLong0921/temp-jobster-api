@@ -4,6 +4,8 @@ MOCK_DATA.json
 MOCK_DATA1.json
 populate.js
 
+TUTORIAL.md
+
 /client
 **/*_mongo.js
 test.js
