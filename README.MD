@@ -1,25 +1,8 @@
-# A template backend api server(with sso)
+# Jobs tracking RESTful api
 
 A RESTful jobstracking api build with nodejs, express and connected with postgresql(with sequelize). This server is build with the guidance of [NodeJS Tutorial of John Smilga udemy course](https://www.udemy.com/course/nodejs-tutorial-and-projects-course/)
 
-## Prepare
-Open a terminal(in vscode), and run
-
-```sh
-git clone https://github.com/ChiaYiLong0921/nodejs-backend-template.git
-# change your project name
-mv nodejs-backend-template your_project_name
-cd your_project_name
-# check and switch remote url
-git remote -v
-git remote set-url origin <your new github repo url>
-# After your development
-git add .
-git commit -m"Your message"
-git push -u origin main
-```
-
-### .env setup
+## Pre setup
 
 To have the server run successfully, create a .env file and setup the following variables in .env:
 
